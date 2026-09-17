@@ -94,6 +94,7 @@ class opticalPhase(initIsm):
         """
         # TODO
 
+        toa = Tr * toa * (np.pi / 4) * ((D/f)**2)
 
         return toa
 
