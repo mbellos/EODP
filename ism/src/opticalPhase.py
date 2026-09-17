@@ -93,6 +93,8 @@ class opticalPhase(initIsm):
         :return: TOA image in irradiances [mW/m2]
         """
         # TODO
+
+
         return toa
 
 
@@ -115,6 +117,27 @@ class opticalPhase(initIsm):
         :return: TOA image 2D in radiances [mW/m2]
         """
         # TODO
+        isrf, wv_isrf = readIsrf(self.auxdir + '/' + self.ismConfig.isrffile, band)
+        toa=np.zeros((sgm_toa.shape[0], sgm_toa.shape[1])) # Integramos en la dimensión espectral
+
+        # El área del isrf normalizado debe ser 1
+        # Normalización
+        isrf=isrf/np.sum(isrf)
+        # Pasar a nm
+        wv_isrf_nm=wv_isrf*1000
+
+        # Interpolación del ISRF a las lamda de SGM
+        # LAS DOS SIGUIENTES LINEAS SON UNA ALTERNATIVA
+        #cs = interp1d(wv_isrf_nm, isrf, fill_value=(0, 0), bounds_error=False)
+        #interp_isrf = cs(sgm_wv)  # 1D vector
+
+        for ialt in range (sgm_toa.shape[0]): #ialt=i along track
+            for iact in range (sgm_toa.shape[1]): #iact=i across track
+                #toa[ialt,iact]=np.sum(sgm_toa[ialt,iact,:] * interp_isrf) # ALTERNATIVA
+                cs = interp1d(sgm_wv, sgm_toa[ialt, iact, :], fill_value=(0, 0), bounds_error=False)
+                sgm_inter=cs(wv_isrf_nm)
+                toa[ialt,iact]=np.sum(sgm_inter*isrf)
+
         return toa
 
 
