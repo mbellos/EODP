@@ -69,7 +69,7 @@ class mtf:
 
         # Calculate the System MTF
         self.logger.debug("Calculation of the Sysmtem MTF by multiplying the different contributors")
-        Hsys = 1 # dummy
+        Hsys = Hdiff*Hdefoc*Hwfe*Hdet*Hsmear*Hmotion
 
         # Plot cuts ACT/ALT of the MTF
         self.plotMtf(Hdiff, Hdefoc, Hwfe, Hdet, Hsmear, Hmotion, Hsys, nlines, ncolumns, fnAct, fnAlt, directory, band)
@@ -119,6 +119,12 @@ class mtf:
         :return: diffraction MTF
         """
         #TODO
+
+        acos_vec = np.vectorize(np.arccos)
+
+        Hdiff = (2 / np.pi) * (acos_vec(fr2D) - fr2D * np.sqrt(1 - (fr2D**2)))
+        Hdiff[fr2D * fr2D > 1] = 0
+
         return Hdiff
 
 
@@ -132,6 +138,10 @@ class mtf:
         :return: Defocus MTF
         """
         #TODO
+
+        x=np.pi*defocus*fr2D*(1-fr2D)
+        Hdefoc=(2*j1(x))/x
+
         return Hdefoc
 
     def mtfWfeAberrations(self, fr2D, lambd, kLF, wLF, kHF, wHF):
@@ -146,15 +156,22 @@ class mtf:
         :return: WFE Aberrations MTF
         """
         #TODO
+
+        wfe_term = kLF * (wLF / lambd) ** 2 + kHF * (wHF / lambd) ** 2
+        Hwfe=np.exp(-fr2D * (1 - fr2D) * wfe_term)
+
         return Hwfe
 
     def mtfDetector(self,fn2D):
         """
         Detector MTF
-        :param fnD: 2D normalised frequencies (f/(1/w))), where w is the pixel width
+        :param fn2D: 2D normalised frequencies (f/(1/w))), where w is the pixel width
         :return: detector MTF
         """
         #TODO
+
+        Hdet=np.abs(np.sinc(fn2D))
+
         return Hdet
 
     def mtfSmearing(self, fnAlt, ncolumns, ksmear):
@@ -166,6 +183,10 @@ class mtf:
         :return: Smearing MTF
         """
         #TODO
+
+        mtf_1d=np.abs(np.sinc(ksmear * fnAlt))
+        Hsmear=np.tile(mtf_1d[:, np.newaxis], (1, ncolumns))
+
         return Hsmear
 
     def mtfMotion(self, fn2D, kmotion):
@@ -176,6 +197,9 @@ class mtf:
         :return: detector MTF
         """
         #TODO
+
+        Hmotion=np.sinc(kmotion * fn2D)
+
         return Hmotion
 
     def plotMtf(self,Hdiff, Hdefoc, Hwfe, Hdet, Hsmear, Hmotion, Hsys, nlines, ncolumns, fnAct, fnAlt, directory, band):
@@ -198,4 +222,78 @@ class mtf:
         """
         #TODO
 
+        """Plotting the system MTF and all of its contributors."""
+        mid_line = nlines // 2
+        mid_col = ncolumns // 2
 
+        mtf_dict = {
+            "Diffraction MTF": Hdiff,
+            "Defocus MTF": Hdefoc,
+            "WFE Aberrations MTF": Hwfe,
+            "Detector MTF": Hdet,
+            "Smearing MTF": Hsmear,
+            "Motion blur MTF": Hmotion,
+            "System MTF": Hsys,
+        }
+
+        def _plot_slice(x_freq, direction_label, filename):
+            plt.figure(figsize=(9, 6))
+
+            # Manejo de dimensiones de frecuencia
+            if x_freq.ndim == 2:
+                x_vec = (
+                    x_freq[mid_line, :]
+                    if direction_label == "ACT"
+                    else x_freq[:, mid_col]
+                )
+            else:
+                x_vec = x_freq
+
+            # Filtrar solo frecuencias no negativas (hasta Nyquist u otro límite)
+            mask = x_vec >= 0
+            sort_idx = np.argsort(x_vec[mask])
+            x_plot = x_vec[mask][sort_idx]
+
+            for label, h_data in mtf_dict.items():
+                if h_data.ndim == 2:
+                    slice_data = (
+                        h_data[mid_line, :]
+                        if direction_label == "ACT"
+                        else h_data[:, mid_col]
+                    )
+                else:
+                    slice_data = h_data
+
+                y_plot = slice_data[mask][sort_idx]
+
+                if label == "System MTF":
+                    plt.plot(
+                        x_plot, y_plot, label=label, color="black", linewidth=2.0
+                    )
+                else:
+                    plt.plot(x_plot, y_plot, label=label, linewidth=1.5, alpha=0.85)
+
+            # Línea vertical de Nyquist en 0.5
+            plt.axvline(
+                x=0.5, color="black", linestyle="--", label="f Nyquist", linewidth=1.5
+            )
+
+            plt.title(f"System MTF - slice {direction_label}")
+            plt.xlabel("Spatial frequencies f/(1/w) [-]")
+            plt.ylabel("MTF")
+            plt.xlim(0.0, 0.51)
+            plt.ylim(-0.02, 1.05)
+            plt.grid(True, linestyle="-", alpha=0.4)
+            plt.legend(loc="lower left", fontsize="small")
+            plt.tight_layout()
+
+            # Guardar en disco
+            if directory:
+                os.makedirs(directory, exist_ok=True)
+               # plt.savefig(os.path.join(directory, filename), dpi=300)
+
+            # MOSTRAR EN PANTALLA
+            plt.show()
+
+        _plot_slice(fnAct, "ACT", f"MTF_slice_ACT_band_{band}.png")
+        _plot_slice(fnAlt, "ALT", f"MTF_slice_ALT_band_{band}.png")
