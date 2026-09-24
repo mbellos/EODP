@@ -11,14 +11,16 @@
 # La línea azul es la línea real de energía que llega al instrumento del satélite (la "verdad"), la línea roja es la salida del sistema simplemente por convertir los números digitales a magnitud física, sin recalibration y la línea negra es la respuesta después de calibrar la salida.
 # Nunca podremos llegar a esa "verdad", siempre hay un margen de error (delta=ARA-absolute radiometric accuracy). SNR ~ 100
 
-# COMPROBACIÓN OUTPUTS
+# ----- COMPROBACIÓN OUTPUTS -----
 
 from pathlib import Path
 import numpy as np
 import xarray as xr
 
-dir_a = Path(r"C:\Users\mbell\OneDrive\Escritorio\EODT\SHARED\EODP_TER_2021\EODP-TS-L1B\output_Mario")  # Carpeta reducida (los 4 archivos)
-dir_b = Path(r"C:\Users\mbell\OneDrive\Escritorio\EODT\SHARED\EODP_TER_2021\EODP-TS-L1B\output")  # Carpeta principal con más archivos
+# Directorios de las carpetas a comparar
+dir_a = Path(r"C:\Users\mbell\OneDrive\Escritorio\EODT\SHARED\EODP_TER_2021\EODP-TS-L1B\output_Mario")  # Carpeta con los archivos ecualizados
+dir_b = Path(r"C:\Users\mbell\OneDrive\Escritorio\EODT\SHARED\EODP_TER_2021\EODP-TS-L1B\output")  # Carpeta con los archivos de referencia
+
 
 for file_a in dir_a.glob("*.nc"):
     file_b = dir_b / file_a.name
@@ -36,51 +38,43 @@ for file_a in dir_a.glob("*.nc"):
 
                 # Comprobar que tengan las mismas dimensiones antes de restar
                 if arr_a.shape == arr_b.shape and np.issubdtype(arr_a.dtype, np.number):
+
+                    # Comparativa absoluta
                     diff = np.abs(arr_a - arr_b)
 
                     if diff.size > 0 and not np.all(np.isnan(diff)):
                         max_diffs.append(np.nanmax(diff))
+                        # MMSE
                         rmse_values.append(np.sqrt(np.nanmean((arr_a - arr_b) ** 2)))
 
-        print(f"\n📄 Comparación para: {file_a.name}")
+        print(f"\nComparación para: {file_a.name}")
         if max_diffs:
             print(f"  • Diferencia máxima absoluta: {max(max_diffs)}")
             print(f"  • Desviación promedio (RMSE): {np.mean(rmse_values):.6e}")
         else:
             print("  ⚠️ No hay datos numéricos comparables o dimensiones incompatibles.")
 
-# PLOT COMPARATIVO
+# ----- PLOT COMPARATIVO -----
 
 import matplotlib.pyplot as plt
 import xarray as xr
 import numpy as np
 import os
 
-# =====================================================================
-# CONFIGURACIÓN: Reemplaza con tus rutas y nombres reales
-# =====================================================================
-
-# 1. Rutas exactas a tus 3 archivos .nc (usa r'' para rutas de Windows)
+# Rutas exactas a los 3 archivos a plotear
 file_paths = {
     'ref': r"C:\Users\mbell\OneDrive\Escritorio\EODT\SHARED\EODP_TER_2021\EODP-TS-L1B\input\ism_toa_isrf_VNIR-0.nc",  # Referencia azul
     'no_eq': r"C:\Users\mbell\OneDrive\Escritorio\EODT\SHARED\EODP_TER_2021\EODP-TS-L1B\output_Mario_noteq\l1b_toa_VNIR-0.nc",  # Sin eq roja
     'with_eq': r"C:\Users\mbell\OneDrive\Escritorio\EODT\SHARED\EODP_TER_2021\EODP-TS-L1B\output_Mario\l1b_toa_VNIR-0.nc",  # Con eq negra
 }
 
-# 2. Nombre de la variable que confirmamos que es 'toa'
+# Nombre de la variable a plotear
 toa_var_name = 'toa'
 
-# 3. CRUCIAL: ¿Qué línea (alt_lines) quieres visualizar?
-# Tu gráfico actual (image_1.png) muestra 100 líneas (0-100).
-# Para obtener UN gráfico de líneas como image_0.png, debemos elegir UN índice.
-# Por defecto, elegimos la primera línea (índice 0).
+# El gráfico actual muestra 100 líneas (0-100).
+# Para obtener un gráfico de líneas, debemos elegir un índice.
 line_index_to_plot = 50
 
-# =====================================================================
-# PROCESAMIENTO
-# =====================================================================
-
-print(f"Iniciando el procesamiento para generar el gráfico de líneas...")
 print(f"Visualizando la línea índice: {line_index_to_plot} (de la dimensión 'alt_lines')")
 
 # Diccionario para almacenar los perfiles 1D extraídos
@@ -90,17 +84,15 @@ data_profiles = {}
 for name, path in file_paths.items():
     print(f"  > Procesando archivo: {os.path.basename(path)}")
     try:
-        # 1. Abrir el dataset
+        # Abrir el dataset
         with xr.open_dataset(path) as ds:
-            # 2. Extraer la variable 2D 'toa' (dimensiones presumiblemente alt_lines, act_columns)
+            # Extraer la variable 2D 'toa' (dimensiones presumiblemente alt_lines, act_columns)
             toa_2d = ds[toa_var_name]
 
-            # 3. CRUCIAL: Convertir 2D en 1D. Seleccionamos UNA sola línea.
-            # Asumimos que la primera dimensión es 'alt_lines' y la segunda 'act_columns'
-            # .isel() selecciona por índice.
+            # Convertir 2D en 1D. Seleccionamos UNA sola línea.
             profile_1d = toa_2d.isel(alt_lines=line_index_to_plot)
 
-            # 4. Guardar los valores numéricos y el eje X
+            # Guardar los valores numéricos y el eje X
             data_profiles[name] = profile_1d.values
 
             # Si es la primera ejecución, guardamos el eje X (píxeles)
@@ -120,17 +112,12 @@ for name in ['ref', 'no_eq', 'with_eq']:
             f"❌ Error: El perfil del archivo '{name}' tiene un tamaño diferente ({data_profiles[name].size}) que la referencia ({ref_size}).")
         exit()
 
-# =====================================================================
-# GRÁFICA (REPLICANDO FIELMENTE ESTILO image_0.png)
-# =====================================================================
-
-print("  > Generando gráfica de líneas superpuestas...")
+# Gráfica
 plt.figure(figsize=(12, 7))  # Tamaño adecuado para ver los detalles
 
 # Eje X común
 x = data_profiles['x_axis']
 
-# 1. Graficar las 3 líneas CON LOS COLORES Y ORDEN EXACTOS de image_0.png
 # La referencia azul se grafica primero para estar al fondo si es suave
 plt.plot(x, data_profiles['ref'], label='TOA after the ISRF', color='blue', linestyle='-')
 
@@ -140,18 +127,11 @@ plt.plot(x, data_profiles['no_eq'], label='TOA L1B no eq', color='red', linestyl
 # La línea con ecualización negra (corregida)
 plt.plot(x, data_profiles['with_eq'], label='TOA L1B with eq', color='black', linestyle='-')
 
-# 2. Configuración de títulos y etiquetas EXACTAS de image_0.png
+# Títulos y etiquetas
 plt.title(f'Effect of the Equalization for VNIR-0 (Line {line_index_to_plot})', fontsize=14)
 plt.ylabel('TOA [mW/m2/sr]', fontsize=12)
 plt.xlabel('ACT pixel [-]', fontsize=12)
-
-# 3. Estilo general: Rejilla, Leyenda en la esquina superior izquierda
 plt.legend(loc='upper left', fontsize=10)
 plt.grid(True, which='both', linestyle='-', color='grey', alpha=0.5)
-
-# 4. Ajustar márgenes
 plt.tight_layout()
-
-# Mostrar la gráfica
-print("\n✅ Script completado. Mostrando gráfica de líneas.")
 plt.show()
