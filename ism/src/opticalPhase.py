@@ -108,7 +108,7 @@ class opticalPhase(initIsm):
         """
         # TODO
         GE = fft2(toa)
-        toa_ft=ifft2(GE * fftshift(Hsys))
+        toa_ft=np.real(ifft2(GE * fftshift(Hsys)))
 
         return toa_ft
 
