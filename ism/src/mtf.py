@@ -74,7 +74,6 @@ class mtf:
         # Plot cuts ACT/ALT of the MTF
         self.plotMtf(Hdiff, Hdefoc, Hwfe, Hdet, Hsmear, Hmotion, Hsys, nlines, ncolumns, fnAct, fnAlt, directory, band)
 
-
         return Hsys
 
     def freq2d(self,nlines, ncolumns, D, lambd, focal, w):
@@ -236,6 +235,8 @@ class mtf:
             "System MTF": Hsys,
         }
 
+
+        # Como hay que hacer 2 plot, definimos una función para representar ALT y ACT
         def _plot_slice(x_freq, direction_label, filename):
             plt.figure(figsize=(9, 6))
 
@@ -254,6 +255,7 @@ class mtf:
             sort_idx = np.argsort(x_vec[mask])
             x_plot = x_vec[mask][sort_idx]
 
+            # Representación de cada uno de los mtf
             for label, h_data in mtf_dict.items():
                 if h_data.ndim == 2:
                     slice_data = (
@@ -287,13 +289,12 @@ class mtf:
             plt.legend(loc="lower left", fontsize="small")
             plt.tight_layout()
 
-            # Guardar en disco
-            if directory:
-                os.makedirs(directory, exist_ok=True)
-               # plt.savefig(os.path.join(directory, filename), dpi=300)
+            # Guardar en directorio original
+            plt.savefig(os.path.join(directory, filename), dpi=300)
 
-            # MOSTRAR EN PANTALLA
+            # Mostrar imagen
             plt.show()
 
-        _plot_slice(fnAct, "ACT", f"MTF_slice_ACT_band_{band}.png")
-        _plot_slice(fnAlt, "ALT", f"MTF_slice_ALT_band_{band}.png")
+        # Se llama a la función anterior creada para los dos plot
+        _plot_slice(fnAct, "ACT", "mtf_act.png")
+        _plot_slice(fnAlt, "ALT", "mtf_alt.png")
