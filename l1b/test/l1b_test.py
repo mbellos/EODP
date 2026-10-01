@@ -2,16 +2,6 @@
 
 # PLOT FROM YOUR OUTPUTS THE EQUALISED OUTPUT VERSUS NOT EQUALISED VERSUS THE TRUTH
 # TRUTH = EODP-TS-L1B\input\ism_toa_isrf_VNIR-0.nc
-# Comparación de sus outputs con los nuestros de forma numérica una por uno
-# Luego, plotear las tres rectas sin ecualizar, ecualizada y la buena (en input, ism_toa_isrf_band.nc) juntas
-
-# Tenemos un multiband imager (un telescopio con un sistema de espejos). La luz entra al telescopio, pasa por filtros... y llega al detector. Adquirimos info. de la parte electromagnética del espectro (400 nm - 1000 nm), lo demás lo filtramos (aunque no es perfecto.
-# El sistema no es perfecto (respuesta no homogénea, filtros no ideales, ruido, etc.).
-# Para detectar estos primeros fallos, calibramos el instrumento.
-# La línea azul es la línea real de energía que llega al instrumento del satélite (la "verdad"-ISRF), la línea roja es la salida del sistema (es la respuesta del instrumento) simplemente por convertir los números digitales a magnitud física, sin recalibration y la línea negra es la respuesta después de calibrar la salida.
-# Nunca podremos llegar a esa "verdad", siempre hay un margen de error (delta=ARA-absolute radiometric accuracy). SNR ~ 100
-# METER ESTO EN LA MEMORIA Calibration es la forma de entender el comportamiento del instrumento en órbita (utilizas elementos homogeneos para calibrar; desiertos, el sol, mares, etc.)
-# y en tierra (a nivel de espectro y radiometric) para compensar los errores que pueda meter
 
 # ----- COMPROBACIÓN OUTPUTS -----
 

@@ -1,6 +1,8 @@
 from math import pi
 from config.ismConfig import ismConfig
 import numpy as np
+import xarray as xr
+
 import math
 import matplotlib.pyplot as plt
 from scipy.special import j1
@@ -73,6 +75,8 @@ class mtf:
 
         # Plot cuts ACT/ALT of the MTF
         self.plotMtf(Hdiff, Hdefoc, Hwfe, Hdet, Hsmear, Hmotion, Hsys, nlines, ncolumns, fnAct, fnAlt, directory, band)
+
+        #self.save_netcdf(Hsys, fnAlt, fnAct, directory, band)
 
         return Hsys
 
@@ -298,3 +302,4 @@ class mtf:
         # Se llama a la función anterior creada para los dos plot
         _plot_slice(fnAct, "ACT", "mtf_act.png")
         _plot_slice(fnAlt, "ALT", "mtf_alt.png")
+
