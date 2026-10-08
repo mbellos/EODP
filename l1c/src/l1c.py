@@ -63,6 +63,28 @@ class l1c(initL1c):
         :return: L1C radiances, L1C latitude and longitude in degrees
         '''
         #TODO
+
+        m = mgrs.MGRS()
+        mgrs_tiles = set([]) # Una lista preserva el orden, el set no (se usa para quedarse unique values)
+
+        for ii in range(toa.shape[0]): #100
+            for jj in range(toa.shape[1]): #150
+                mgrstile=m.toMGRS(lat[ii,jj],lon[ii,jj],MGRSPrecision=self.l1cConfig.mgrs_tile_precision)
+                mgrs_tiles.add(mgrstile)
+
+        mgrs_tiles=list(mgrs_tiles) # Para poder iterar sobre la lista (sobre el set no se puede)
+
+        toa_l1c=np.zeros(len(mgrs_tiles))
+        lat_l1c=np.zeros(len(mgrs_tiles))
+        lon_l1c=np.zeros(len(mgrs_tiles))
+
+        tck=bisplrep(lat, lon, toa)
+
+        for ii in range(len(mgrs_tiles)):
+            (lat_l1c[ii], lon_l1c[ii]) = m.toLatLon(mgrs_tiles[ii])
+            toa_l1c[ii]=bisplev(lat_l1c[ii],lon_l1c[ii],tck)
+
+
         return lat_l1c, lon_l1c, toa_l1c
 
     def checkSize(self, lat,toa):

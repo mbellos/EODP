@@ -181,5 +181,5 @@ class detectionPhase(initIsm):
         )
 
         dsnu_act = np.abs(np.random.standard_normal(toa.shape[1]) * kdsnu)
-        toa = toa + Sd * (1 + dsnu_act[np.newaxis, :])
+        toa = toa + Sd * (1 + dsnu_act[np.newaxis,:])
         return toa
