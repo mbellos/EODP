@@ -3,7 +3,7 @@
 # PLOT FROM YOUR OUTPUTS THE EQUALISED OUTPUT VERSUS NOT EQUALISED VERSUS THE TRUTH
 # TRUTH = EODP-TS-L1B\input\ism_toa_isrf_VNIR-0.nc
 
-# ----- COMPROBACIÓN OUTPUTS -----
+# ----- 1- COMPROBACIÓN OUTPUTS -----
 
 from pathlib import Path
 import numpy as np
@@ -14,10 +14,11 @@ dir_a = Path(r"C:\Users\mbell\OneDrive\Escritorio\EODT\SHARED\EODP_TER_2021\EODP
 dir_b = Path(r"C:\Users\mbell\OneDrive\Escritorio\EODT\SHARED\EODP_TER_2021\EODP-TS-L1B\output")  # Carpeta con los archivos de referencia
 
 
+# Nos quedamos solo con los qrchivos con extensión .nc
 files_a = {f.name: f for f in dir_a.glob("*.nc")}
 files_b = {f.name: f for f in dir_b.glob("*.nc")}
 
-# 1. Comprobar archivos que existen solo en una carpeta
+# Comprobar archivos que existen solo en una carpeta (no podrán compararse)
 only_in_a = files_a.keys() - files_b.keys()
 only_in_b = files_b.keys() - files_a.keys()
 
@@ -26,19 +27,20 @@ if only_in_a:
 if only_in_b:
     print(f"⚠️ Archivos solo en carpeta B: {list(only_in_b)}")
 
-# 2. Comparar archivos coincidentes
+# Comparamos archivos coincidentes
 common_files = sorted(files_a.keys() & files_b.keys())
 
 for filename in common_files:
     file_a = files_a[filename]
     file_b = files_b[filename]
 
-    print(f"\n──────────────────────────────────────────────")
-    print(f"📄 Comparando: {filename}")
+    print(f"──────────────────────────────────────────────")
+    print(f"Comparing: {filename}")
 
     with xr.open_dataset(file_a) as ds_a, xr.open_dataset(file_b) as ds_b:
         has_comparable_data = False
 
+        # Miramos si hay variables diferentes en los archivos generados
         # Variables en A que no están en B
         missing_vars = set(ds_a.data_vars) - set(ds_b.data_vars)
         if missing_vars:
@@ -50,15 +52,16 @@ for filename in common_files:
 
             arr_a, arr_b = ds_a[var].values, ds_b[var].values
 
-            # Validar que sean datos numéricos
+            # Validamos que sean datos numéricos
             if not np.issubdtype(arr_a.dtype, np.number):
                 continue
 
-            # Validar dimensiones
+            # Validamos dimensiones
             if arr_a.shape != arr_b.shape:
                 print(f"  ❌ {var}: Formas incompatibles (A: {arr_a.shape} vs B: {arr_b.shape})")
                 continue
 
+            # Para cada par de archivos, calculamos su error absoluto y su RMSE
             diff = np.abs(arr_a - arr_b)
 
             if diff.size > 0 and not np.all(np.isnan(diff)):
@@ -66,16 +69,16 @@ for filename in common_files:
                 rmse = np.sqrt(np.nanmean((arr_a - arr_b) ** 2))
                 has_comparable_data = True
 
-                # Reporte por variable (marcar en verde si son idénticas)
-                status = "✅ Idénticas" if max_diff == 0 else "⚠️ Hay diferencias"
+                # Conclusiones para cada archivo
+                status = "Identical" if max_diff == 0 else "Different"
                 print(f"  • Variable [{var}]: {status}")
-                print(f"      - Dif. Máx: {max_diff:.6e}")
+                print(f"      - Max. Diff.: {max_diff:.6e}")
                 print(f"      - RMSE:     {rmse:.6e}")
 
         if not has_comparable_data:
-            print("  ⚠️ No se pudieron comparar variables numéricas coincidentes.")
+            print("Could not compare matching numerical variables")
 
-# ----- PLOT COMPARATIVO -----
+# ----- 2- PLOT COMPARATIVO -----
 
 import matplotlib.pyplot as plt
 import xarray as xr
@@ -93,7 +96,7 @@ file_paths = {
 toa_var_name = 'toa'
 
 # El gráfico actual muestra 100 líneas (0-100).
-# Para obtener un gráfico de líneas, debemos elegir un índice.
+# Para obtener un gráfico de líneas, elegimos la línea intermedia
 line_index_to_plot = 50
 
 print(f"Visualizando la línea índice: {line_index_to_plot} (de la dimensión 'alt_lines')")
@@ -101,22 +104,22 @@ print(f"Visualizando la línea índice: {line_index_to_plot} (de la dimensión '
 # Diccionario para almacenar los perfiles 1D extraídos
 data_profiles = {}
 
-# Cargar y extraer el perfil 1D de cada archivo
+# Cargamos y extraemos el perfil 1D de cada archivo
 for name, path in file_paths.items():
     print(f"  > Procesando archivo: {os.path.basename(path)}")
     try:
-        # Abrir el dataset
+        # Abrimos el dataset
         with xr.open_dataset(path) as ds:
-            # Extraer la variable 2D 'toa' (dimensiones presumiblemente alt_lines, act_columns)
+            # Extraemos la variable 2D 'toa'
             toa_2d = ds[toa_var_name]
 
-            # Convertir 2D en 1D. Seleccionamos UNA sola línea.
+            # Convertimos 2D en 1D. Seleccionamos solo la línea elegida arriba
             profile_1d = toa_2d.isel(alt_lines=line_index_to_plot)
 
-            # Guardar los valores numéricos y el eje X
+            # Guardamos los valores numéricos y el eje X
             data_profiles[name] = profile_1d.values
 
-            # Si es la primera ejecución, guardamos el eje X (píxeles)
+            # Guardamos el eje X (píxeles) solo en la primera ejecución
             if 'x_axis' not in data_profiles:
                 data_profiles['x_axis'] = np.arange(profile_1d.size)
 
@@ -124,7 +127,7 @@ for name, path in file_paths.items():
         print(f"❌ Error al abrir o leer el archivo {os.path.basename(path)}: {e}")
         exit()
 
-# Verificar que los datos sean compatibles
+# Verificamos que los datos sean compatibles
 print("  > Verificando consistencia de datos...")
 ref_size = data_profiles['x_axis'].size
 for name in ['ref', 'no_eq', 'with_eq']:
@@ -139,22 +142,18 @@ plt.figure(figsize=(12, 7))  # Tamaño adecuado para ver los detalles
 # Eje X común
 x = data_profiles['x_axis']
 
-# La referencia azul se grafica primero para estar al fondo si es suave
 plt.plot(x, data_profiles['ref'], label='TOA after the ISRF', color='blue', linestyle='-')
-
-# La línea sin ecualización roja (con ruido)
 plt.plot(x, data_profiles['no_eq'], label='TOA L1B no eq', color='red', linestyle='-')
-
-# La línea con ecualización negra (corregida)
 plt.plot(x, data_profiles['with_eq'], label='TOA L1B with eq', color='black', linestyle='-')
 
-# Títulos y etiquetas
 plt.title(f'Effect of the Equalization for VNIR-0 (Line {line_index_to_plot})', fontsize=14)
 plt.ylabel('TOA [mW/m2/sr]', fontsize=12)
 plt.xlabel('ACT pixel [-]', fontsize=12)
 plt.legend(loc='upper left', fontsize=10)
 plt.grid(True, which='both', linestyle='-', color='grey', alpha=0.5)
 plt.tight_layout()
+
+# Guardamos la figura
 plt.savefig(
     r"C:\Users\mbell\OneDrive\Escritorio\EODT\EODT_Mario\l1b\test\eq_test.png", dpi=300, bbox_inches="tight"
 )
