@@ -80,81 +80,149 @@ for filename in common_files:
 
 # ----- 2- PLOT COMPARATIVO -----
 
+
+# ----- 2- PLOT COMPARATIVO PARA VNIR-0, VNIR-1, VNIR-2 Y VNIR-3 -----
+
 import matplotlib.pyplot as plt
 import xarray as xr
 import numpy as np
 import os
 
-# Rutas exactas a los 3 archivos a plotear
-file_paths = {
-    'ref': r"C:\Users\mbell\OneDrive\Escritorio\EODT\SHARED\EODP_TER_2021\EODP-TS-L1B\input\ism_toa_isrf_VNIR-0.nc",  # Referencia azul
-    'no_eq': r"C:\Users\mbell\OneDrive\Escritorio\EODT\SHARED\EODP_TER_2021\EODP-TS-L1B\output_Mario_noteq\l1b_toa_VNIR-0.nc",  # Sin eq roja
-    'with_eq': r"C:\Users\mbell\OneDrive\Escritorio\EODT\SHARED\EODP_TER_2021\EODP-TS-L1B\output_Mario\l1b_toa_VNIR-0.nc",  # Con eq negra
-}
+# Rutas base de las carpetas
+base_dir = r"C:\Users\mbell\OneDrive\Escritorio\EODT\SHARED\EODP_TER_2021\EODP-TS-L1B"
 
-# Nombre de la variable a plotear
+# Rutas de salida
+output_dir = os.path.join(
+    r"C:\Users\mbell\OneDrive\Escritorio\EODT\SHARED\EODP_TER_2021\EODP-TS-L1B\output_Mario"
+)
+os.makedirs(output_dir, exist_ok=True)
+
+# Configuración
+bands = [0, 1, 2, 3]
 toa_var_name = 'toa'
-
-# El gráfico actual muestra 100 líneas (0-100).
-# Para obtener un gráfico de líneas, elegimos la línea intermedia
 line_index_to_plot = 50
 
-print(f"Visualizando la línea índice: {line_index_to_plot} (de la dimensión 'alt_lines')")
+# Procesamos las cuatro bandas
+for band in bands:
 
-# Diccionario para almacenar los perfiles 1D extraídos
-data_profiles = {}
+    print(f"\n{'=' * 50}")
+    print(f"Procesando VNIR-{band}")
+    print(f"{'=' * 50}")
 
-# Cargamos y extraemos el perfil 1D de cada archivo
-for name, path in file_paths.items():
-    print(f"  > Procesando archivo: {os.path.basename(path)}")
-    try:
-        # Abrimos el dataset
-        with xr.open_dataset(path) as ds:
-            # Extraemos la variable 2D 'toa'
-            toa_2d = ds[toa_var_name]
+    # Rutas de los tres archivos para la banda actual
+    file_paths = {
+        # Path input
+        'ref': os.path.join(
+            base_dir, "input",
+            f"ism_toa_isrf_VNIR-{band}.nc"
+        ),
+        # Path output sin ecualizar
+        'no_eq': os.path.join(
+            base_dir, "output_Mario_noteq",
+            f"l1b_toa_VNIR-{band}.nc"
+        ),
+        # Path output ecualizado
+        'with_eq': os.path.join(
+            base_dir, "output_Mario",
+            f"l1b_toa_VNIR-{band}.nc"
+        ),
+    }
 
-            # Convertimos 2D en 1D. Seleccionamos solo la línea elegida arriba
-            profile_1d = toa_2d.isel(alt_lines=line_index_to_plot)
+    # Diccionario para almacenar los perfiles
+    data_profiles = {}
 
-            # Guardamos los valores numéricos y el eje X
-            data_profiles[name] = profile_1d.values
+    # Leer los tres archivos
+    for name, path in file_paths.items():
 
-            # Guardamos el eje X (píxeles) solo en la primera ejecución
-            if 'x_axis' not in data_profiles:
-                data_profiles['x_axis'] = np.arange(profile_1d.size)
+        print(f"  > Procesando {os.path.basename(path)}")
 
-    except Exception as e:
-        print(f"❌ Error al abrir o leer el archivo {os.path.basename(path)}: {e}")
-        exit()
+        try:
+            with xr.open_dataset(path) as ds:
 
-# Verificamos que los datos sean compatibles
-print("  > Verificando consistencia de datos...")
-ref_size = data_profiles['x_axis'].size
-for name in ['ref', 'no_eq', 'with_eq']:
-    if data_profiles[name].size != ref_size:
-        print(
-            f"❌ Error: El perfil del archivo '{name}' tiene un tamaño diferente ({data_profiles[name].size}) que la referencia ({ref_size}).")
-        exit()
+                # Extraemos la variable 2D 'toa'
+                toa_2d = ds[toa_var_name]
 
-# Gráfica
-plt.figure(figsize=(12, 7))  # Tamaño adecuado para ver los detalles
+                # Convertimos 2D en 1D. Seleccionamos solo la línea elegida arriba
+                profile_1d = toa_2d.isel(alt_lines=line_index_to_plot)
 
-# Eje X común
-x = data_profiles['x_axis']
+                # Guardamos los valores numéricos y el eje X
+                data_profiles[name] = profile_1d.values.copy()
 
-plt.plot(x, data_profiles['ref'], label='TOA after the ISRF', color='blue', linestyle='-')
-plt.plot(x, data_profiles['no_eq'], label='TOA L1B no eq', color='red', linestyle='-')
-plt.plot(x, data_profiles['with_eq'], label='TOA L1B with eq', color='black', linestyle='-')
+                # Guardamos el eje X (píxeles) solo en la primera ejecución
+                if 'x_axis' not in data_profiles:
+                    data_profiles['x_axis'] = np.arange(profile_1d.size)
 
-plt.title(f'Effect of the Equalization for VNIR-0 (Line {line_index_to_plot})', fontsize=14)
-plt.ylabel('TOA [mW/m2/sr]', fontsize=12)
-plt.xlabel('ACT pixel [-]', fontsize=12)
-plt.legend(loc='upper left', fontsize=10)
-plt.grid(True, which='both', linestyle='-', color='grey', alpha=0.5)
-plt.tight_layout()
+        except Exception as e:
+            print(
+                f"ERROR al leer {os.path.basename(path)}: {e}"
+            )
+            raise
 
-# Guardamos la figura
-plt.savefig(
-    r"C:\Users\mbell\OneDrive\Escritorio\EODT\EODT_Mario\l1b\test\eq_test.png", dpi=300, bbox_inches="tight"
-)
-plt.show()
+    # Comprobar que los perfiles tengan la misma longitud
+    x = data_profiles['x_axis']
+
+    # Verificamos que los datos sean compatibles
+    for name in ['ref', 'no_eq', 'with_eq']:
+        if data_profiles[name].size != x.size:
+            raise ValueError(
+                f"El perfil '{name}' de VNIR-{band} tiene "
+                f"{data_profiles[name].size} valores, "
+                f"pero la referencia tiene {x.size}."
+            )
+
+    # Crear gráfica
+    plt.figure(figsize=(12, 7))
+
+    plt.plot(
+        x, data_profiles['ref'],
+        label='TOA after the ISRF',
+        color='blue', linestyle='-'
+    )
+
+    plt.plot(
+        x, data_profiles['no_eq'],
+        label='TOA L1B no eq',
+        color='red', linestyle='-'
+    )
+
+    plt.plot(
+        x, data_profiles['with_eq'],
+        label='TOA L1B with eq',
+        color='black', linestyle='-'
+    )
+
+    plt.title(
+        f'Effect of the Equalization for VNIR-{band} '
+        f'(Line {line_index_to_plot})',
+        fontsize=14
+    )
+
+    plt.ylabel('TOA [mW/m2/sr]', fontsize=12)
+    plt.xlabel('ACT pixel [-]', fontsize=12)
+    plt.legend(loc='upper left', fontsize=10)
+
+    plt.grid(
+        True, which='both',
+        linestyle='-', color='grey', alpha=0.5
+    )
+
+    plt.tight_layout()
+
+    # Guardamos una imagen por banda
+    output_path = os.path.join(
+        output_dir,
+        f"eq_test_VNIR-{band}.png"
+    )
+
+    plt.savefig(
+        output_path,
+        dpi=300,
+        bbox_inches="tight"
+    )
+
+    plt.show()
+    plt.close()
+
+    print(f"  > Gráfica guardada en: {output_path}")
+
+print("\nTodas las bandas se han procesado correctamente.")
