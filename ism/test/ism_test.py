@@ -16,9 +16,9 @@ only_in_b = files_b.keys() - files_a.keys()
 
 
 if only_in_a:
-    print(f"⚠️ Archivos solo en carpeta A: {list(only_in_a)}")
+    print(f"Files only in A: {list(only_in_a)}")
 if only_in_b:
-    print(f"⚠️ Archivos solo en carpeta B: {list(only_in_b)}")
+    print(f"Files only in B: {list(only_in_b)}")
 
 # Comparamos archivos coincidentes
 common_files = sorted(files_a.keys() & files_b.keys())
@@ -37,7 +37,7 @@ for filename in common_files:
         # Variables en A que no están en B
         missing_vars = set(ds_a.data_vars) - set(ds_b.data_vars)
         if missing_vars:
-            print(f"  ⚠️ Variables faltantes en B: {missing_vars}")
+            print(f"Missing variables in B: {missing_vars}")
 
         for var in ds_a.data_vars:
             if var not in ds_b.data_vars:
@@ -51,7 +51,7 @@ for filename in common_files:
 
             # Validamos dimensiones
             if arr_a.shape != arr_b.shape:
-                print(f"  ❌ {var}: Formas incompatibles (A: {arr_a.shape} vs B: {arr_b.shape})")
+                print(f"{var}: Different dimensions (A: {arr_a.shape} vs B: {arr_b.shape})")
                 continue
 
             # Para cada par de archivos, calculamos su error absoluto y su RMSE

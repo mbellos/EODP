@@ -23,9 +23,9 @@ only_in_a = files_a.keys() - files_b.keys()
 only_in_b = files_b.keys() - files_a.keys()
 
 if only_in_a:
-    print(f"⚠️ Archivos solo en carpeta A: {list(only_in_a)}")
+    print(f"Files only in A: {list(only_in_a)}")
 if only_in_b:
-    print(f"⚠️ Archivos solo en carpeta B: {list(only_in_b)}")
+    print(f"Files only in B: {list(only_in_b)}")
 
 # Comparamos archivos coincidentes
 common_files = sorted(files_a.keys() & files_b.keys())
@@ -44,7 +44,7 @@ for filename in common_files:
         # Variables en A que no están en B
         missing_vars = set(ds_a.data_vars) - set(ds_b.data_vars)
         if missing_vars:
-            print(f"  ⚠️ Variables faltantes en B: {missing_vars}")
+            print(f"Missing variables in B: {missing_vars}")
 
         for var in ds_a.data_vars:
             if var not in ds_b.data_vars:
@@ -58,7 +58,7 @@ for filename in common_files:
 
             # Validamos dimensiones
             if arr_a.shape != arr_b.shape:
-                print(f"  ❌ {var}: Formas incompatibles (A: {arr_a.shape} vs B: {arr_b.shape})")
+                print(f"{var}: Different dimensions (A: {arr_a.shape} vs B: {arr_b.shape})")
                 continue
 
             # Para cada par de archivos, calculamos su error absoluto y su RMSE
@@ -97,7 +97,7 @@ output_dir = os.path.join(
 )
 os.makedirs(output_dir, exist_ok=True)
 
-# Configuración
+# Configuramos las 4 bandas del sistema
 bands = [0, 1, 2, 3]
 toa_var_name = 'toa'
 line_index_to_plot = 50
@@ -106,7 +106,7 @@ line_index_to_plot = 50
 for band in bands:
 
     print(f"\n{'=' * 50}")
-    print(f"Procesando VNIR-{band}")
+    print(f"Processing VNIR-{band}")
     print(f"{'=' * 50}")
 
     # Rutas de los tres archivos para la banda actual
@@ -133,9 +133,6 @@ for band in bands:
 
     # Leer los tres archivos
     for name, path in file_paths.items():
-
-        print(f"  > Procesando {os.path.basename(path)}")
-
         try:
             with xr.open_dataset(path) as ds:
 
@@ -209,20 +206,9 @@ for band in bands:
     plt.tight_layout()
 
     # Guardamos una imagen por banda
-    output_path = os.path.join(
-        output_dir,
-        f"eq_test_VNIR-{band}.png"
-    )
+    output_path = os.path.join(output_dir,f"eq_test_VNIR-{band}.png")
 
-    plt.savefig(
-        output_path,
-        dpi=300,
-        bbox_inches="tight"
-    )
+    plt.savefig(output_path,dpi=300,bbox_inches="tight")
 
     plt.show()
     plt.close()
-
-    print(f"  > Gráfica guardada en: {output_path}")
-
-print("\nTodas las bandas se han procesado correctamente.")

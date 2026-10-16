@@ -280,11 +280,9 @@ class mtf:
                     plt.plot(x_plot, y_plot, label=label, linewidth=1.5, alpha=0.85)
 
             # Línea vertical de Nyquist en 0.5
-            plt.axvline(
-                x=0.5, color="black", linestyle="--", label="f Nyquist", linewidth=1.5
-            )
+            plt.axvline(x=0.5, color="black", linestyle="--", label="f Nyquist", linewidth=1.5)
 
-            plt.title(f"System MTF - slice {direction_label}")
+            plt.title(f"System MTF - {band} - slice {direction_label}")
             plt.xlabel("Spatial frequencies f/(1/w) [-]")
             plt.ylabel("MTF")
             plt.xlim(0.0, 0.51)
@@ -300,6 +298,7 @@ class mtf:
             plt.show()
 
         # Se llama a la función anterior creada para los dos plot
-        _plot_slice(fnAct, "ACT", "mtf_act.png")
-        _plot_slice(fnAlt, "ALT", "mtf_alt.png")
+        # Generar las dos gráficas de la banda correspondiente
+        _plot_slice(fnAct, "ACT", f"mtf_act_{band}.png")
 
+        _plot_slice(fnAlt, "ALT", f"mtf_alt_{band}.png")
