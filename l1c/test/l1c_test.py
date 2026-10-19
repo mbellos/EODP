@@ -70,7 +70,7 @@ R = 6371000
 
 # FILAS (cogemos la fila intermedia de las 100 que hay)
 
-line = 50
+line = 49
 lat_line = lat[line, :]
 lon_line = lon[line, :]
 
@@ -129,7 +129,7 @@ plt.show()
 
 # COLUMNAS (cogemos la columna intermedia de las 150 que hay)
 
-column = 75
+column = 74
 lat_column = lat[:, column]
 lon_column = lon[:, column]
 

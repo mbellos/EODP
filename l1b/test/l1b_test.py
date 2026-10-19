@@ -100,7 +100,7 @@ os.makedirs(output_dir, exist_ok=True)
 # Configuramos las 4 bandas del sistema
 bands = [0, 1, 2, 3]
 toa_var_name = 'toa'
-line_index_to_plot = 50
+line_index_to_plot = 49 # Es la línea central, porque python empieza a contar en 0
 
 # Procesamos las cuatro bandas
 for band in bands:
