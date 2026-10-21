@@ -70,3 +70,76 @@ for filename in common_files:
 
         if not has_comparable_data:
             print("Could not compare matching numerical variables")
+
+# COMPARATIVA ANALYTIC VS READ TABLA
+
+import numpy as np
+
+# Constantes físicas (mismos valores que en el archivo config)
+h = 6.62607015e-34  # [J*s] Constante de Planck
+c = 299792458.0  # [m/s] Velocidad de la luz
+
+
+def compute_analytic_pixel_from_config(L_rad, band_idx, cfg, include_dark_signal=False):
+    """
+    Calcula el valor analítico ideal para un píxel dada su radiancia de entrada.
+    :param L_rad: Radiancia espectral en [mW/sr/m2]
+    :param band_idx: Índice de la banda (0: VNIR-0, 1: VNIR-1, 2: VNIR-2, 3: VNIR-3)
+    :param cfg: Instancia de la clase ismConfig
+    :param include_dark_signal: Indica si se suma el offset medio de corriente en oscuro (Sd)
+    """
+    wv_m = cfg.wv[band_idx]  # Longitud de onda en metros [m]
+
+    # 1. Radiancia a Irradiancia [mW/m2] (rad2Irrad)
+    irrad = cfg.Tr * L_rad * (np.pi / 4.0) * ((cfg.D / cfg.f) ** 2)
+
+    # 2. Irradiancia a Fotones [ph] (irrad2Phot)
+    area_pix = cfg.pix_size ** 2
+    e_in = (irrad * 1e-3) * area_pix * cfg.t_int
+    e_ph = (h * c) / wv_m
+    photons = e_in / e_ph
+
+    # 3. Fotones a Electrones [e-] (phot2Electr)
+    electrons_photo = photons * cfg.QE
+
+    # 3.b. Dark Signal (darkSignal)
+    if include_dark_signal:
+        Sd = cfg.ds_A_coeff * ((cfg.T / cfg.Tref) ** 3) * np.exp(-cfg.ds_B_coeff * ((1.0 / cfg.T) - (1.0 / cfg.Tref)))
+        electrons_total = electrons_photo + Sd
+    else:
+        electrons_total = electrons_photo
+
+    # Aplicación del límite por Full Well Capacity (FWC)
+    electrons_sat = min(electrons_total, cfg.FWC)
+
+    # 4. Electrones a Voltaje [V] (electr2Volt)
+    volts = electrons_sat * cfg.OCF * cfg.ADC_gain
+
+    # 5. Digitalización [DN] (digitisation)
+    max_dn = (2 ** cfg.bit_depth) - 1
+    dn_float = np.round((volts / (cfg.max_voltage - cfg.min_voltage)) * max_dn)
+    dn = int(np.clip(dn_float, 0, max_dn))
+
+    return {
+        'Radiance [mW/sr/m2]': L_rad,
+        'Irradiance [mW/m2]': irrad,
+        'Photons [ph]': photons,
+        'Electrons (Photo) [e-]': electrons_photo,
+        'Electrons (Final) [e-]': electrons_sat,
+        'Voltage [V]': volts,
+        'DN [DN]': dn
+    }
+
+# Instanciamos objeto de configuración para los parámetros del instrumento
+from config.ismConfig import ismConfig
+cfg = ismConfig()
+
+radiances_50_75 = [68.92, 197.72, 342.87, 403.07]  # [VNIR-0, VNIR-1, VNIR-2, VNIR-3]
+band_names = ['VNIR-0', 'VNIR-1', 'VNIR-2', 'VNIR-3']
+
+for idx, band_name in enumerate(band_names):
+    L = radiances_50_75[idx]
+    res = compute_analytic_pixel_from_config(L, idx, cfg, include_dark_signal=False)
+    print(f"=== {band_name} Analytic ===")
+    for k, v in res.items():
+        print(f"  {k}: {v}")
