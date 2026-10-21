@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import os
 
 from l1c.src.l1c import l1c
 from common.io.readGeodetic import readGeodetic
@@ -58,6 +59,8 @@ plt.title('Projection on Ground')
 plt.legend()
 plt.grid(True)
 plt.tight_layout()
+
+plt.savefig(os.path.join(outdir,'L1B_vs_L1C.png'),dpi=300,bbox_inches='tight')
 
 plt.show()
 
@@ -124,6 +127,8 @@ plt.ticklabel_format(
 plt.grid(True)
 plt.tight_layout()
 
+plt.savefig(os.path.join(outdir,'ACT_Spatial_Sampling.png'),dpi=300,bbox_inches='tight')
+
 plt.show()
 
 
@@ -183,5 +188,7 @@ plt.ticklabel_format(
 
 plt.grid(True)
 plt.tight_layout()
+
+plt.savefig(os.path.join(outdir,'ALT_Spatial_Sampling.png'),dpi=300,bbox_inches='tight')
 
 plt.show()
