@@ -28,7 +28,7 @@ for file_path in nc_files:
 
         counts, bins, patches = ax.hist(
             data,
-            bins=180,  # Bins necesarios para imitar la resolución de QGIS
+            bins=600,  # Bins necesarios para imitar la resolución de QGIS
             histtype="bar",
             facecolor="none",  # Sin relleno interno
             edgecolor="#3a3a52",  # Tono gris/azul oscuro del contorno de QGIS
